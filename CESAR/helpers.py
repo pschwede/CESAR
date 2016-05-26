@@ -5,7 +5,7 @@ helpers functions
 '''
 
 import params
-import math
+from math import log
 
 #def read_sequence(s):
 #    s_stripped = s.strip().replace("-", "")
@@ -871,7 +871,7 @@ def aggregate_ratios(ratios):
         #print("\nnum of ratios: " + str(len(ratios)))
         #print("divided: " + str(arith_avg))
         if arith_avg != 0:
-            log_arith_avg = math.log(arith_avg)
+            log_arith_avg = log(arith_avg)
         else:
             log_arith_avg = 0  #or maybe set to non-defined
     else:
@@ -1065,20 +1065,33 @@ def get_emissions_table_N_codon(codon, matrix):
     return table
 
     
+def calc_log_odd(table, c):
+    if 'N' in c:
+        try:
+            if table[c] > 0:
+                return log(table[c])
+            else:
+                return float("-inf")
+        except KeyError:
+            return float("-inf")
+    else:
+        underlying_codons = get_underlying_codons(c, False)
+        probs = [table[x] for x in underlying_codons]
+        avg_prob = float(sum(probs))/len(probs)
+        return log(avg_prob) if avg_prob > 0 else float("-inf")
+
+cached_f = dict()
 
 def table_to_function(table):
+    global cached_f
     #print("KEYS: " + str(len(table.keys())))
     #if len(table.keys()) < 61:
     #    print(table.keys())
-    def func(c):
-        if c.count('N') == 0:
-            if table.has_key(c) and table[c] > 0:
-                return math.log(table[c])
-            else:
-                return float("-inf")
-        else:
-            underlying_codons = get_underlying_codons(c, False)
-            probs = [table[x] for x in underlying_codons]
-            avg_prob = float(sum(probs))/len(probs)
-            return math.log(avg_prob)if avg_prob > 0 else float("-inf")
-    return func
+
+    tkey = hash(frozenset(table.iteritems()))
+    
+    try:
+        return cached_f[tkey].__getitem__
+    except KeyError:
+        cached_f[tkey] = {c:calc_log_odd(table, c) for c in table}
+    return cached_f[tkey].__getitem__
