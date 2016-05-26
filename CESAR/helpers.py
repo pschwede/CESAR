@@ -1088,7 +1088,7 @@ def table_to_function(table):
     #if len(table.keys()) < 61:
     #    print(table.keys())
 
-    tkey = hash(frozenset(table.iteritems()))
+    tkey = frozenset(table.iteritems())
     
     try:
         return cached_f[tkey].__getitem__
